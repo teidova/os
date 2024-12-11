@@ -1,5 +1,5 @@
 # Bounce
-Vous voulez jouer au ping pong mais vous n'avez pas d'amis ? Faites jouer des container docker entre eux.
+Vous voulez jouer au ping pong mais vous n'avez pas d'amis ? Faites jouer des containers docker entre eux.
 
 ## Comment jouer
 > Pour jouer vous aurez besoin de **docker** avec **le plugin compose**. L'ancien ```docker-compose``` n'est pas supporte. Si vous avez un doute, si docker ne donne pas d'erreur si vous faites ```docker compose```, vous avez la bonne version.
