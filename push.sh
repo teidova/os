@@ -1,1 +1,2 @@
-docker tag balle:dev localhost:5000/balle:dev
+docker tag balle:dev localhost/balle:dev
+docker push localhost/balle:dev
