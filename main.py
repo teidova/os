@@ -1,15 +1,17 @@
 from scapy.all import IP, UDP, Raw, send, sniff, conf
 import random
 import threading
+import os
 from time import sleep
 
 print("Lancement du programme...")
 
-LISTEN_ADDRESS = '127.0.0.1'
-LISTEN_PORT = int('5006')
+LISTEN_ADDRESS = os.environ.get('LISTEN_ADDRESS', '127.0.0.1')
+LISTEN_PORT = int(os.environ.get('LISTEN_PORT', '5006'))
 
-OTHER_ADDRESSES = '127.0.0.1:5007' # space separated addresses of other containers
-SEND_BALL = 'y'.upper() in ['YES', 'Y']
+OTHER_ADDRESSES = os.environ.get('OTHER_ADDRESSES', '127.0.0.1:5007') # comma separated addresses of other containers
+SEND_BALL = os.environ.get('SEND_BALL', 'n').upper() in ['YES', 'Y']
+INIT_BOUNCE_COUNT = int(os.environ.get('REBONDS', 5))
 
 # Obtenir l'interface
 routing_information = conf.route.route(LISTEN_ADDRESS)
@@ -17,7 +19,7 @@ interface = routing_information[0]
 interface_ip = routing_information[1]
 
 # Liste des joueurs
-joueurs = OTHER_ADDRESSES.split(' ')
+joueurs = OTHER_ADDRESSES.split(',')
 
 # Variables globales
 global score
@@ -81,7 +83,7 @@ def ecoute_balle():
 # Fonction pour démarrer l'envoi initial
 def start():
     sleep(2)
-    envoie_balle(joueurs[0], 5)
+    envoie_balle(joueurs[0], INIT_BOUNCE_COUNT)
 
 # Lancement du programme
 if SEND_BALL == "y":
