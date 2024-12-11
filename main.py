@@ -80,7 +80,7 @@ def traitement(balle):
 # Fonction pour écouter les paquets
 def ecoute_balle():
     print("[ATTENTE] En écoute pour recevoir une balle sur le port", LISTEN_PORT)
-    sniff(iface=interface, filter=f"udp and dst port {LISTEN_PORT}", prn=traitement)
+    sniff(iface=interface, filter=f"udp and dst port {LISTEN_PORT} and inbound", prn=traitement)
 
 # Fonction pour démarrer l'envoi initial
 def start():
