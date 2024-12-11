@@ -16,6 +16,6 @@ COPY requirements.txt .
 
 RUN .venv/bin/pip install --no-cache -r requirements.txt -Csetup-args=-Dblas=blas -Csetup-args=-Dlapack=lapack
 
-COPY . .
+COPY main.py .
 
 CMD [ ".venv/bin/python", "./main.py"]
