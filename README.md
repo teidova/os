@@ -17,6 +17,11 @@ Buildez l'image docker ```balles:dev```
 $ ./build.sh
 ```
 
+Poussez l'image ```balles:dev``` sur le registry
+```
+$ ./push.sh
+```
+
 Lancez le jeu avec ```docker compose```
 ```
 $ docker compose up
