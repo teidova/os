@@ -90,5 +90,3 @@ if SEND_BALL == "y":
     th = threading.Thread(target=start)
     th.start()
 ecoute_balle()
-
-
