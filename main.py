@@ -3,16 +3,21 @@ import random
 import threading
 from time import sleep
 
+print("Lancement du programme...")
+
+LISTEN_ADDRESS = '127.0.0.1'
+LISTEN_PORT = int('5006')
+
+OTHER_ADDRESSES = '127.0.0.1:5007' # space separated addresses of other containers
+SEND_BALL = 'y'.upper() in ['YES', 'Y']
+
 # Obtenir l'interface
-interface = conf.route.route('127.0.0.1')[0]
+routing_information = conf.route.route(LISTEN_ADDRESS)
+interface = routing_information[0]
+interface_ip = routing_information[1]
 
 # Liste des joueurs
-joueurs = ["127.0.0.1:" + input('port other:')]
-mon_adresse = "127.0.0.1"
-mon_port = int(input('mon port:'))
-mon_adresse_et_port = f"{mon_adresse}:{mon_port}"
-joueurs.append(mon_adresse_et_port)
-envoie_balles = input("envoie balle(y/n):")
+joueurs = OTHER_ADDRESSES.split(' ')
 
 # Variables globales
 global score
@@ -24,7 +29,7 @@ lock = threading.Lock()
 def envoie_balle(adresse_adversaire, nb_rebonds):
     try:
         print(f"[DEBUG] Préparation de l'envoi à {adresse_adversaire} avec {nb_rebonds} rebonds.")
-        ball = IP(src=mon_adresse, dst=adresse_adversaire.split(':')[0]) / \
+        ball = IP(src=interface_ip, dst=adresse_adversaire.split(':')[0]) / \
                UDP(sport=random.randint(1024, 65535), dport=int(adresse_adversaire.split(':')[1])) / \
                Raw(load=f"nb_rebonds:{nb_rebonds}")
         send(ball, verbose=False)
@@ -59,7 +64,7 @@ def traitement(balle):
                         # Sélectionner le prochain joueur
                         dernier_joueur = balle[IP].src + ":" + str(balle[UDP].sport)
                         prochain_joueur = random.choice(
-                            [p for p in joueurs if p != mon_adresse_et_port and p != dernier_joueur]
+                            [p for p in joueurs if p != dernier_joueur]
                         )
                         print(f"[DEBUG] Prochain joueur sélectionné : {prochain_joueur}")
                         envoie_balle(prochain_joueur, nb_rebonds)
@@ -70,8 +75,8 @@ def traitement(balle):
 
 # Fonction pour écouter les paquets
 def ecoute_balle():
-    print("[ATTENTE] En écoute pour recevoir une balle sur le port", mon_port)
-    sniff(iface=interface, filter=f"udp and dst port {mon_port}", prn=traitement)
+    print("[ATTENTE] En écoute pour recevoir une balle sur le port", LISTEN_PORT)
+    sniff(iface=interface, filter=f"udp and dst port {LISTEN_PORT}", prn=traitement)
 
 # Fonction pour démarrer l'envoi initial
 def start():
@@ -79,7 +84,7 @@ def start():
     envoie_balle(joueurs[0], 5)
 
 # Lancement du programme
-if envoie_balles == "y":
+if SEND_BALL == "y":
     th = threading.Thread(target=start)
     th.start()
 ecoute_balle()
