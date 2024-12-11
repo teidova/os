@@ -1,0 +1,26 @@
+services:
+  ball_player1:
+    #build: . # if you prefer to build locally comment the image entry and uncomment this line
+    image: localhost/balle:dev
+    container_name: ball_player1
+    #hostname: ball_player1 # defaults to container_name, change for a different hostname in docker DNS
+    environment:
+      # LISTEN_PORT: 5005 # default: 5005
+      OTHER_ADDRESSES: 'ball_player2:5005' # default: '127.0.0.1:5005'
+      # SEND_BALL: 'Y'
+      # REBONDS: 5 # only ever useful if SENDBALL is set to YES
+    #ports:
+    #  - "8000:5000"
+  ball_player2:
+    #build: . # if you prefer to build locally comment the image entry and uncomment this line
+    image: localhost/balle:dev
+    container_name: ball_player2
+    #hostname: ball_player2 # defaults to container_name, change for a different hostname in docker DNS
+    environment:
+      # LISTEN_PORT: 5005 # default: 5005
+      OTHER_ADDRESSES: 'ball_player1:5005' # default: '127.0.0.1:5005'
+      SEND_BALL: 'Y'
+      # REBONDS: 5 # only ever useful if SENDBALL is set to YES
+    #ports:
+    #  - "8000:5000"
+

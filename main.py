@@ -3,23 +3,25 @@ import random
 import threading
 import os
 from time import sleep
+import socket
 
 print("Lancement du programme...")
 
-LISTEN_ADDRESS = os.environ.get('LISTEN_ADDRESS', '127.0.0.1')
-LISTEN_PORT = int(os.environ.get('LISTEN_PORT', '5006'))
+LISTEN_PORT = int(os.environ.get('LISTEN_PORT', '5005'))
 
-OTHER_ADDRESSES = os.environ.get('OTHER_ADDRESSES', '127.0.0.1:5007') # comma separated addresses of other containers
-SEND_BALL = os.environ.get('SEND_BALL', 'n').upper() in ['YES', 'Y']
+OTHER_ADDRESSES = os.environ.get('OTHER_ADDRESSES', '127.0.0.1:5005') # comma separated addresses of other containers
+SEND_BALL = os.environ.get('SEND_BALL', 'n').upper() in ['YES', 'Y', 'OUI', 'O']
 INIT_BOUNCE_COUNT = int(os.environ.get('REBONDS', 5))
-
-# Obtenir l'interface
-routing_information = conf.route.route(LISTEN_ADDRESS)
-interface = routing_information[0]
-interface_ip = routing_information[1]
 
 # Liste des joueurs
 joueurs = OTHER_ADDRESSES.split(',')
+for i in range(len(joueurs)):
+    joueurs[i] = f"{socket.gethostbyname_ex(joueurs[i].split(':')[0])[2][0]}:{joueurs[i].split(':')[1]}"
+
+# Obtenir l'interface
+routing_information = conf.route.route(joueurs[0].split(':')[0])
+interface = routing_information[0]
+interface_ip = routing_information[1]
 
 # Variables globales
 global score
@@ -82,11 +84,13 @@ def ecoute_balle():
 
 # Fonction pour démarrer l'envoi initial
 def start():
+    print("Lancement de la balle dans 2s...")
     sleep(2)
+    print("Lancement de la balle...")
     envoie_balle(joueurs[0], INIT_BOUNCE_COUNT)
 
 # Lancement du programme
-if SEND_BALL == "y":
+if SEND_BALL:
     th = threading.Thread(target=start)
     th.start()
 ecoute_balle()
