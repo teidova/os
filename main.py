@@ -1,9 +1,14 @@
-from scapy.all import IP, UDP, Raw, send, sniff, conf
 import random
 import threading
 import os
 from time import sleep
 import socket
+from multiprocessing.dummy import Pool
+import requests
+from http.server import BaseHTTPRequestHandler, HTTPServer
+import logging
+
+pool = Pool(10)
 
 print("Lancement du programme...")
 
@@ -18,69 +23,57 @@ joueurs = OTHER_ADDRESSES.split(',')
 for i in range(len(joueurs)):
     joueurs[i] = f"{socket.gethostbyname_ex(joueurs[i].split(':')[0])[2][0]}:{joueurs[i].split(':')[1]}"
 
-# Obtenir l'interface
-routing_information = conf.route.route(joueurs[0].split(':')[0])
-interface = routing_information[0]
-interface_ip = routing_information[1]
-
 # Variables globales
 global score
 score = 0
-processed_packets = set()
-lock = threading.Lock()
 
 # Fonction pour envoyer une balle
 def envoie_balle(adresse_adversaire, nb_rebonds):
     try:
-        print(f"[DEBUG] Préparation de l'envoi à {adresse_adversaire} avec {nb_rebonds} rebonds.")
-        ball = IP(src=interface_ip, dst=adresse_adversaire.split(':')[0]) / \
-               UDP(sport=random.randint(1024, 65535), dport=int(adresse_adversaire.split(':')[1])) / \
-               Raw(load=f"nb_rebonds:{nb_rebonds}")
-        send(ball, verbose=False)
         print(f"[ENVOI] Balle envoyée à {adresse_adversaire} avec {nb_rebonds} rebonds restants.")
+        pool.apply_async(requests.get, [f'http://{adresse_adversaire}/{nb_rebonds}'])
     except Exception as e:
         print(f"[ERREUR] Problème lors de l'envoi de la balle : {e}")
 
 # Fonction pour traiter une balle reçue
-def traitement(balle):
+def traitement(nb_rebonds):
+    print("paquet http recu")
     global score
-    try:
-        with lock:
-            # Identifier le paquet de manière unique
-            packet_id = (balle[IP].src, balle[IP].dst, balle[Raw].load.decode())
-            if packet_id in processed_packets:
-                print("[DEBUG] Paquet déjà traité.")
-                return
-            processed_packets.add(packet_id)
 
-            # Traiter le paquet
-            if Raw in balle:
-                payload = balle[Raw].load.decode()
-                if "nb_rebonds" in payload:
-                    nb_rebonds = int(payload.split(":")[1])
-                    print(f"[REÇU] Balle reçue avec {nb_rebonds} rebonds restants.")
+    print(f"[REÇU] Balle reçue avec {nb_rebonds} rebonds restants.")
+    if nb_rebonds > 0:
+        nb_rebonds -= 1
+        score += 1
+        print(f"[SCORE] Nouveau score : {score}")
 
-                    if nb_rebonds > 0:
-                        nb_rebonds -= 1
-                        score += 1
-                        print(f"[SCORE] Nouveau score : {score}")
+        prochain_joueur = random.choice(joueurs)
+        print(f"[DEBUG] Prochain joueur sélectionné : {prochain_joueur}")
+        envoie_balle(prochain_joueur, nb_rebonds)
+    else:
+        print("[FIN] La balle a atteint 0 rebonds. Aucun envoi supplémentaire.")
 
-                        # Sélectionner le prochain joueur
-                        dernier_joueur = balle[IP].src + ":" + str(balle[UDP].sport)
-                        prochain_joueur = random.choice(
-                            [p for p in joueurs if p != dernier_joueur]
-                        )
-                        print(f"[DEBUG] Prochain joueur sélectionné : {prochain_joueur}")
-                        envoie_balle(prochain_joueur, nb_rebonds)
-                    else:
-                        print("[FIN] La balle a atteint 0 rebonds. Aucun envoi supplémentaire.")
-    except Exception as e:
-        print(f"[ERREUR] Problème dans le traitement de la balle : {e}")
+class BalleHTTPHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header("Content-type", "text/html")
+        self.end_headers()
+        
+        self.wfile.write(bytes("<html><head><title>Bounce HTTP</title></head><body>", "utf-8"))
+        self.wfile.write(bytes(f"<p>Score : {score}</p>", "utf-8"))
+        if self.path.strip('/').isdigit():
+            self.wfile.write(bytes(f"<p>There is {self.path.strip('/')} bounces left.</p>", "utf-8"))
+        self.wfile.write(bytes("</body></html>", "utf-8"))
+        
+        try:
+            traitement(int(self.path.strip('/')))
+        except ValueError:
+            pass
 
-# Fonction pour écouter les paquets
+
 def ecoute_balle():
-    print("[ATTENTE] En écoute pour recevoir une balle sur le port", LISTEN_PORT)
-    sniff(iface=interface, filter=f"udp and dst port {LISTEN_PORT} and inbound", prn=traitement)
+    with HTTPServer(('0.0.0.0', LISTEN_PORT), BalleHTTPHandler) as httpd:
+        print("serving at port", LISTEN_PORT)
+        httpd.serve_forever()
 
 # Fonction pour démarrer l'envoi initial
 def start():
