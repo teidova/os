@@ -21,7 +21,10 @@ INIT_BOUNCE_COUNT = int(os.environ.get('REBONDS', 5))
 # Liste des joueurs
 joueurs = OTHER_ADDRESSES.split(',')
 for i in range(len(joueurs)):
-    joueurs[i] = f"{socket.gethostbyname_ex(joueurs[i].split(':')[0])[2][0]}:{joueurs[i].split(':')[1]}"
+    if joueurs[i].count('.') != 4: # ignore ipv4
+        joueurs[i] = f"{socket.gethostbyname_ex(joueurs[i].split(':')[0])[2][0]}:{joueurs[i].split(':')[1]}"
+
+print(f"[DEBUG] Addresses des autres joueurs :\n{joueurs}")
 
 # Variables globales
 global score
